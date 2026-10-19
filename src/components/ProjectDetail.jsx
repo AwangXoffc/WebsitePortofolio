@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, ExternalLink, Github, Code2, Star, ChevronRight, Layers, Layout, Globe, Package, Cpu, Code, } from "lucide-react";
 import Swal from "sweetalert2";
 import { toSlug } from "../utils/slug";
+import { supabase } from "../supabase";
 const TECH_ICONS = {
     React: Globe,
     Tailwind: Layout,
@@ -89,23 +90,73 @@ const handleGithubClick = (githubLink) => {
 const ProjectDetails = () => {
     const { slug } = useParams();
     const navigate = useNavigate();
+    const handleBack = () => {
+        let sameSiteReferrer = false;
+        try {
+            sameSiteReferrer = Boolean(document.referrer) && new URL(document.referrer).origin === window.location.origin;
+        } catch {
+            sameSiteReferrer = false;
+        }
+        if (window.history.length > 1 && sameSiteReferrer) navigate(-1);
+        else navigate("/");
+    };
     const [project, setProject] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
     const [isImageLoaded, setIsImageLoaded] = useState(false);
     useEffect(() => {
+        let cancelled = false;
+        setProject(null);
+        setLoadError("");
+        setIsLoading(true);
         window.scrollTo(0, 0);
-        const storedProjects = JSON.parse(localStorage.getItem("projects")) || [];
-        const selectedProject = storedProjects.find((p) => toSlug(p.Title) === slug);
-        if (selectedProject) {
-            const enhancedProject = {
-                ...selectedProject,
-                Features: selectedProject.Features || [],
-                TechStack: selectedProject.TechStack || [],
-                Github: selectedProject.Github || "Private",
-            };
-            setProject(enhancedProject);
-        }
+        const loadProject = async () => {
+            try {
+                let storedProjects = [];
+                try {
+                    const cached = JSON.parse(localStorage.getItem("projects") || "[]");
+                    storedProjects = Array.isArray(cached) ? cached : [];
+                } catch {
+                    storedProjects = [];
+                }
+                let selectedProject = storedProjects.find((item) => toSlug(item.Title) === slug);
+                if (!selectedProject) {
+                    const { data, error } = await supabase
+                        .from("portfolio_projects")
+                        .select("*")
+                        .order("id", { ascending: false });
+                    if (error) throw error;
+                    const projects = Array.isArray(data) ? data : [];
+                    selectedProject = projects.find((item) => toSlug(item.Title) === slug);
+                    try {
+                        localStorage.setItem("projects", JSON.stringify(projects));
+                    } catch {
+                        localStorage.removeItem("projects");
+                    }
+                }
+                if (cancelled) return;
+                if (!selectedProject) {
+                    setLoadError("Project tidak ditemukan atau tidak lagi tersedia.");
+                    return;
+                }
+                setProject({
+                    ...selectedProject,
+                    Features: Array.isArray(selectedProject.Features) ? selectedProject.Features : [],
+                    TechStack: Array.isArray(selectedProject.TechStack) ? selectedProject.TechStack : [],
+                    Github: selectedProject.Github || "Private",
+                });
+            } catch (error) {
+                if (!cancelled) setLoadError(error?.message || "Project gagal dimuat. Periksa koneksi lalu coba kembali.");
+            } finally {
+                if (!cancelled) setIsLoading(false);
+            }
+        };
+        void loadProject();
+        return () => {
+            cancelled = true;
+        };
     }, [slug]);
-    if (!project) {
+    if (!project && isLoading) {
         return (<div className="min-h-screen bg-[#030014] flex items-center justify-center">
         <div className="text-center space-y-6 animate-fadeIn">
           <div className="w-16 h-16 md:w-24 md:h-24 mx-auto border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"/>
@@ -114,6 +165,17 @@ const ProjectDetails = () => {
           </h2>
         </div>
       </div>);
+    }
+    if (!project) {
+        return (<div className="min-h-screen bg-[#030014] flex items-center justify-center px-6">
+          <div className="max-w-lg text-center rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
+            <h1 className="text-2xl font-bold text-white">Project tidak tersedia</h1>
+            <p role="alert" className="mt-3 text-sm leading-relaxed text-gray-400">{loadError || "Project tidak ditemukan."}</p>
+            <button type="button" onClick={() => navigate("/")} className="mt-6 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400">
+              <ArrowLeft className="h-4 w-4"/> Kembali ke portofolio
+            </button>
+          </div>
+        </div>);
     }
     const projectUrl = `${window.location.origin}/project/${toSlug(project.Title)}`;
     return (<>
@@ -158,7 +220,7 @@ const ProjectDetails = () => {
         <div className="relative">
           <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-16">
             <div className="flex items-center space-x-2 md:space-x-4 mb-8 md:mb-12 animate-fadeIn">
-              <button onClick={() => navigate(-1)} className="group inline-flex items-center space-x-1.5 md:space-x-2 px-3 md:px-5 py-2 md:py-2.5 bg-white/5 backdrop-blur-xl rounded-xl text-white/90 hover:bg-white/10 transition-all duration-300 border border-white/10 hover:border-white/20 text-sm md:text-base">
+              <button onClick={handleBack} type="button" aria-label="Kembali ke portofolio" className="group inline-flex items-center space-x-1.5 md:space-x-2 px-3 md:px-5 py-2 md:py-2.5 bg-white/5 backdrop-blur-xl rounded-xl text-white/90 hover:bg-white/10 transition-all duration-300 border border-white/10 hover:border-white/20 text-sm md:text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">
                 <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 group-hover:-translate-x-1 transition-transform"/>
                 <span>Back</span>
               </button>
@@ -190,11 +252,11 @@ const ProjectDetails = () => {
                 <ProjectStats project={project}/>
 
                 <div className="flex flex-wrap gap-3 md:gap-4">
-                  <a href={project.Link} target="_blank" rel="noopener noreferrer" className="group relative inline-flex items-center space-x-1.5 md:space-x-2 px-4 md:px-8 py-2.5 md:py-4 bg-gradient-to-r from-blue-600/10 to-purple-600/10 hover:from-blue-600/20 hover:to-purple-600/20 text-blue-300 rounded-xl transition-all duration-300 border border-blue-500/20 hover:border-blue-500/40 backdrop-blur-xl overflow-hidden text-sm md:text-base">
-                    <div className="absolute inset-0 translate-y-[100%] bg-gradient-to-r from-blue-600/10 to-purple-600/10 transition-transform duration-300 group-hover:translate-y-[0%]"/>
-                    <ExternalLink className="relative w-4 h-4 md:w-5 md:h-5 group-hover:rotate-12 transition-transform"/>
+                  {project.Link?.trim() ? (<a href={project.Link.trim()} target="_blank" rel="noopener noreferrer" className="group relative inline-flex items-center space-x-1.5 md:space-x-2 px-4 md:px-8 py-2.5 md:py-4 bg-gradient-to-r from-blue-600/10 to-purple-600/10 hover:from-blue-600/20 hover:to-purple-600/20 text-blue-300 rounded-xl transition-all duration-300 border border-blue-500/20 hover:border-blue-500/40 backdrop-blur-xl overflow-hidden text-sm md:text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">
+                    <div className="absolute inset-0 translate-y-[100%] bg-gradient-to-r from-blue-600/10 to-purple-600/10 transition-transform duration-300 group-hover:translate-y-[0%]" aria-hidden="true"/>
+                    <ExternalLink className="relative w-4 h-4 md:w-5 md:h-5 group-hover:rotate-12 transition-transform" aria-hidden="true"/>
                     <span className="relative font-medium">Live Demo</span>
-                  </a>
+                  </a>) : (<span className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 md:px-8 py-2.5 md:py-4 text-sm md:text-base text-gray-500" aria-disabled="true"><ExternalLink className="w-4 h-4" aria-hidden="true"/> Demo tidak tersedia</span>)}
 
                   <a href={project.Github} target="_blank" rel="noopener noreferrer" className="group relative inline-flex items-center space-x-1.5 md:space-x-2 px-4 md:px-8 py-2.5 md:py-4 bg-gradient-to-r from-purple-600/10 to-pink-600/10 hover:from-purple-600/20 hover:to-pink-600/20 text-purple-300 rounded-xl transition-all duration-300 border border-purple-500/20 hover:border-purple-500/40 backdrop-blur-xl overflow-hidden text-sm md:text-base" onClick={(e) => !handleGithubClick(project.Github) && e.preventDefault()}>
                     <div className="absolute inset-0 translate-y-[100%] bg-gradient-to-r from-purple-600/10 to-pink-600/10 transition-transform duration-300 group-hover:translate-y-[0%]"/>

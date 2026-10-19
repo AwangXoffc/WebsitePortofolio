@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
+import { scrollToSection as scrollToAnchor } from "../utils/scrollToSection";
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
@@ -44,15 +45,7 @@ const Navbar = () => {
         }
     }, [isOpen]);
     const scrollToSection = (e, href) => {
-        e.preventDefault();
-        const section = document.querySelector(href);
-        if (section) {
-            const top = section.offsetTop - 100;
-            window.scrollTo({
-                top: top,
-                behavior: "smooth"
-            });
-        }
+        scrollToAnchor(e, href, 88);
         setIsOpen(false);
     };
     return (<nav className={`fixed w-full top-0 z-50 transition-all duration-500 ${isOpen
@@ -87,7 +80,7 @@ const Navbar = () => {
 
 
                     <div className="md:hidden">
-                        <button onClick={() => setIsOpen(!isOpen)} className={`relative p-2 text-[#e2d3fd] hover:text-white transition-transform duration-300 ease-in-out transform ${isOpen ? "rotate-90 scale-125" : "rotate-0 scale-100"}`}>
+                        <button type="button" onClick={() => setIsOpen(!isOpen)} aria-label={isOpen ? "Tutup menu navigasi" : "Buka menu navigasi"} aria-expanded={isOpen} aria-controls="mobile-navigation" className={`relative p-2 text-[#e2d3fd] hover:text-white transition-transform duration-300 ease-in-out transform ${isOpen ? "rotate-90 scale-125" : "rotate-0 scale-100"}`}>
                             {isOpen ? (<X className="w-6 h-6"/>) : (<Menu className="w-6 h-6"/>)}
                         </button>
                     </div>
@@ -95,7 +88,7 @@ const Navbar = () => {
             </div>
 
 
-            <div className={`md:hidden transition-all duration-300 ease-in-out ${isOpen
+            <div id="mobile-navigation" className={`md:hidden transition-all duration-300 ease-in-out ${isOpen
             ? "max-h-screen opacity-100"
             : "max-h-0 opacity-0 overflow-hidden"}`}>
                 <div className="px-4 py-6 space-y-4">

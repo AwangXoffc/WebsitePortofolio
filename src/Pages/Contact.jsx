@@ -32,14 +32,14 @@ const ContactPage = () => {
             import.meta.env.VITE_PUBLIC_CONTACT_EMAIL ||
             import.meta.env.VITE_EMAIL_TO ||
             import.meta.env.VITE_EMAIL ||
-            __PORTFOLIO_CONTACT_EMAIL__ ||
+            (typeof __PORTFOLIO_CONTACT_EMAIL__ === "string" ? __PORTFOLIO_CONTACT_EMAIL__ : "") ||
             '').trim();
         const validContactEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)
             && !/email-anda|your-email|example\.com/i.test(contactEmail);
         if (!validContactEmail) {
             Swal.fire({
                 title: 'Email kontak belum terbaca',
-                text: 'Pastikan file .env di folder PORTOFOLIO berisi VITE_CONTACT_EMAIL=email-anda dan tunggu server dimuat ulang.',
+                text: 'Alamat penerima belum tersedia pada konfigurasi website. Silakan gunakan kanal sosial di bawah atau coba kembali nanti.',
                 icon: 'info',
                 confirmButtonColor: '#6366f1'
             });
@@ -103,7 +103,7 @@ const ContactPage = () => {
             setIsSubmitting(false);
         }
     };
-    return (<div className="px-[5%] sm:px-[5%] lg:px-[10%] ">
+    return (<div className="px-[5%] sm:px-[5%] lg:px-[10%] scroll-mt-24" id="Contact">
       <div className="text-center lg:mt-[5%] mt-10 mb-2 sm:px-0 px-[5%]">
         <h2 data-aos="fade-down" data-aos-duration="1000" className="inline-block text-3xl md:text-5xl font-bold text-center mx-auto text-transparent bg-clip-text bg-gradient-to-r from-[#6366f1] to-[#a855f7]">
           <span style={{
@@ -121,7 +121,7 @@ const ContactPage = () => {
         </p>
       </div>
 
-      <div className="h-auto py-10 flex items-center justify-center 2xl:pr-[3.1%] lg:pr-[3.8%]  md:px-0" id="Contact">
+      <div className="h-auto py-10 flex items-center justify-center 2xl:pr-[3.1%] lg:pr-[3.8%] md:px-0">
         <div className="container px-[1%] grid grid-cols-1 sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-[45%_55%] 2xl:grid-cols-[35%_65%] gap-12">
           <div className="bg-white/5 backdrop-blur-xl rounded-3xl shadow-2xl p-5 py-10 sm:p-10 transform transition-all duration-500 hover:shadow-[#6366f1]/10">
             <div className="flex justify-between items-start mb-8">

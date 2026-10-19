@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { MessageCircle, Send, Youtube, Mail, ExternalLink, Sparkles } from "lucide-react";
 import AOS from 'aos';
 import 'aos/dist/aos.css';
+import { scrollToSection } from "../utils/scrollToSection";
 const StatusBadge = memo(() => (<div className="inline-block animate-float lg:mx-0" data-aos="zoom-in" data-aos-delay="400">
     <div className="relative group">
       <div className="absolute -inset-0.5 bg-gradient-to-r from-[#6366f1] to-[#a855f7] rounded-full blur opacity-30 group-hover:opacity-50 transition duration-1000"></div>
@@ -34,28 +35,24 @@ const MainTitle = memo(() => (<div className="space-y-2" data-aos="fade-up" data
 const TechStack = memo(({ tech }) => (<div className="px-4 py-2 hidden sm:block rounded-full bg-white/5 backdrop-blur-sm border border-white/10 text-sm text-gray-300 hover:bg-white/10 transition-colors">
     {tech}
   </div>));
-const CTAButton = memo(({ href, text, icon: Icon }) => (<a href={href}>
-    <button className="group relative w-[160px]">
-      <div className="absolute -inset-0.5 bg-gradient-to-r from-[#4f52c9] to-[#8644c5] rounded-xl opacity-50 blur-md group-hover:opacity-90 transition-all duration-700"></div>
-      <div className="relative h-11 bg-[#030014] backdrop-blur-xl rounded-lg border border-white/10 leading-none overflow-hidden">
-        <div className="absolute inset-0 scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-500 bg-gradient-to-r from-[#4f52c9]/20 to-[#8644c5]/20"></div>
-        <span className="absolute inset-0 flex items-center justify-center gap-2 text-sm group-hover:gap-3 transition-all duration-300">
-          <span className="bg-gradient-to-r from-gray-200 to-white bg-clip-text text-transparent font-medium z-10">
+const CTAButton = memo(({ href, text, icon: Icon }) => (<a href={href} onClick={(event) => scrollToSection(event, href)} aria-label={text === "Projects" ? "Lihat proyek portofolio" : "Buka bagian kontak"} className="group relative inline-flex w-[160px] h-11 items-center justify-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#030014]">
+      <span className="absolute -inset-0.5 bg-gradient-to-r from-[#4f52c9] to-[#8644c5] rounded-xl opacity-50 blur-md group-hover:opacity-90 transition-all duration-700" aria-hidden="true"></span>
+      <span className="relative h-full w-full bg-[#030014] backdrop-blur-xl rounded-lg border border-white/10 leading-none overflow-hidden flex items-center justify-center">
+        <span className="absolute inset-0 scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-500 bg-gradient-to-r from-[#4f52c9]/20 to-[#8644c5]/20" aria-hidden="true"></span>
+        <span className="relative flex items-center justify-center gap-2 text-sm group-hover:gap-3 transition-all duration-300">
+          <span className="bg-gradient-to-r from-gray-200 to-white bg-clip-text text-transparent font-medium">
             {text}
           </span>
-          <Icon className={`w-4 h-4 text-gray-200 ${text === 'Contact' ? 'group-hover:translate-x-1' : 'group-hover:rotate-45'} transform transition-all duration-300 z-10`}/>
+          <Icon className={`w-4 h-4 text-gray-200 ${text === 'Contact' ? 'group-hover:translate-x-1' : 'group-hover:rotate-45'} transform transition-all duration-300`} aria-hidden="true"/>
         </span>
-      </div>
-    </button>
-  </a>));
-const SocialLink = memo(({ icon: Icon, link, label }) => (<a href={link} target="_blank" rel="noopener noreferrer" aria-label={label}>
-    <button className="group relative p-3" aria-label={label}>
-      <div className="absolute inset-0 bg-gradient-to-r from-[#6366f1] to-[#a855f7] rounded-xl blur opacity-20 group-hover:opacity-40 transition duration-300"></div>
-      <div className="relative rounded-xl bg-black/50 backdrop-blur-xl p-2 flex items-center justify-center border border-white/10 group-hover:border-white/20 transition-all duration-300">
-        <Icon className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors"/>
-      </div>
-    </button>
-  </a>));
+      </span>
+    </a>));
+const SocialLink = memo(({ icon: Icon, link, label }) => (<a href={link} target="_blank" rel="noopener noreferrer" aria-label={label} title={label} className="group relative inline-flex p-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400">
+      <span className="absolute inset-0 bg-gradient-to-r from-[#6366f1] to-[#a855f7] rounded-xl blur opacity-20 group-hover:opacity-40 transition duration-300" aria-hidden="true"></span>
+      <span className="relative rounded-xl bg-black/50 backdrop-blur-xl p-2 flex items-center justify-center border border-white/10 group-hover:border-white/20 transition-all duration-300">
+        <Icon className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" aria-hidden="true"/>
+      </span>
+    </a>));
 const TYPING_SPEED = 100;
 const ERASING_SPEED = 50;
 const PAUSE_DURATION = 2000;

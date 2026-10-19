@@ -1,5 +1,6 @@
 import React, { useEffect, memo, useMemo, useState } from "react";
-import { Code, Globe, ArrowUpRight, Sparkles, Cpu } from "lucide-react";
+import { Code, Globe, ArrowUpRight, Sparkles, Cpu, Smartphone } from "lucide-react";
+import { scrollToSection } from "../utils/scrollToSection";
 import AOS from 'aos';
 import { supabase } from "../supabase";
 import 'aos/dist/aos.css';
@@ -45,14 +46,14 @@ const ProfileImage = memo(() => (<div className="flex justify-end items-center s
     </div>
   </div>));
 const StatCard = memo(({ icon: Icon, color, value, valueClassName = "", label, description, animation }) => (<div data-aos={animation} data-aos-duration={1300} className="relative group">
-    <div className="relative z-10 bg-gray-900/50 backdrop-blur-lg rounded-2xl p-6 border border-white/10 overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl h-full flex flex-col justify-between">
+    <div className="relative z-10 bg-gray-900/50 backdrop-blur-lg rounded-2xl p-5 sm:p-6 border border-white/10 overflow-hidden transition-all duration-300 hover:scale-[1.025] hover:shadow-2xl h-full flex flex-col justify-between">
       <div className={`absolute -z-10 inset-0 bg-gradient-to-br ${color} opacity-10 group-hover:opacity-20 transition-opacity duration-300`}></div>
 
       <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="w-16 h-16 rounded-full flex items-center justify-center bg-white/10 transition-transform group-hover:rotate-6 shrink-0">
-          <Icon className="w-8 h-8 text-white"/>
+        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center bg-white/10 transition-transform group-hover:rotate-6 shrink-0">
+          <Icon className="w-7 h-7 sm:w-8 sm:h-8 text-white"/>
         </div>
-        <span className={`text-4xl font-bold text-white text-right leading-tight ${valueClassName}`} data-aos="fade-up-left" data-aos-duration="1500" data-aos-anchor-placement="top-bottom">
+        <span className={`min-w-0 text-3xl sm:text-4xl font-bold text-white text-right leading-tight break-words ${valueClassName}`} data-aos="fade-up-left" data-aos-duration="1500" data-aos-anchor-placement="top-bottom">
           {value}
         </span>
       </div>
@@ -149,9 +150,18 @@ const AboutPage = () => {
             icon: Cpu,
             color: "from-[#6366f1] to-[#a855f7]",
             value: "Design + Code",
-            valueClassName: "text-lg sm:text-xl lg:text-base xl:text-lg 2xl:text-xl whitespace-nowrap",
+            valueClassName: "text-base sm:text-lg xl:text-sm 2xl:text-lg leading-tight",
             label: "Creative Technology",
             description: "Turning ideas into digital experiences",
+            animation: "zoom-in-up",
+        },
+        {
+            icon: Smartphone,
+            color: "from-[#6366f1] to-[#a855f7]",
+            value: "All Devices",
+            valueClassName: "text-base sm:text-lg xl:text-sm 2xl:text-lg leading-tight",
+            label: "Responsive Design",
+            description: "Seamless experiences on every screen",
             animation: "fade-up",
         },
     ], [totalProjects]);
@@ -193,10 +203,8 @@ Halo! Saya Awang OfficiaL, Creative Technologist dan UI/UX Designer yang berfoku
       </div>
 
             <div className="flex flex-col lg:flex-row items-center lg:items-start gap-4 lg:gap-4 lg:px-0 w-full">
-              <a href="#Portofolio" className="w-full lg:w-auto">
-              <button data-aos="fade-up" data-aos-duration="1000" className="w-full lg:w-auto sm:px-6 py-2 sm:py-3 rounded-lg border border-[#a855f7]/50 text-[#a855f7] font-medium transition-all duration-300 hover:scale-105 flex items-center justify-center lg:justify-start gap-2 hover:bg-[#a855f7]/10 ">
+              <a href="#Portofolio" onClick={(event) => scrollToSection(event, "#Portofolio")} data-aos="fade-up" data-aos-duration="1000" aria-label="Lihat semua proyek portofolio" className="w-full lg:w-auto sm:px-6 py-2 sm:py-3 rounded-lg border border-[#a855f7]/50 text-[#a855f7] font-medium transition-all duration-300 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 flex items-center justify-center lg:justify-start gap-2 hover:bg-[#a855f7]/10">
                 <Code className="w-4 h-4 sm:w-5 sm:h-5"/> View Projects
-              </button>
               </a>
             </div>
           </div>
@@ -204,8 +212,8 @@ Halo! Saya Awang OfficiaL, Creative Technologist dan UI/UX Designer yang berfoku
           <ProfileImage />
         </div>
 
-        <a href="#Portofolio">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-16 cursor-pointer">
+        <a href="#Portofolio" onClick={(event) => scrollToSection(event, "#Portofolio")} aria-label="Lihat proyek dari statistik portofolio" className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-4 focus-visible:ring-offset-[#030014]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 sm:gap-6 mt-16">
             {statsData.map((stat) => (<StatCard key={stat.label} {...stat}/>))}
           </div>
         </a>

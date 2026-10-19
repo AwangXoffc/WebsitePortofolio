@@ -55,7 +55,12 @@ const Certificate = ({ ImgSertif }) => {
             filter: "contrast(1.10) brightness(0.9) saturate(1.1)",
             transition: "filter 0.3s ease",
             aspectRatio: "16/11.5",
-        }} onClick={handleOpen}/>
+        }} onClick={handleOpen} role="button" tabIndex={0} aria-label="Buka sertifikat dalam tampilan penuh" onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                handleOpen();
+            }
+        }} />
 				</Box>
 
 
@@ -139,7 +144,7 @@ const Certificate = ({ ImgSertif }) => {
                 bgcolor: "rgba(0,0,0,0.8)",
                 transform: "scale(1.1)",
             },
-        }} size="large">
+        }} size="large" aria-label="Tutup tampilan sertifikat">
 						<CloseIcon sx={{ fontSize: 24 }}/>
 					</IconButton>
 
