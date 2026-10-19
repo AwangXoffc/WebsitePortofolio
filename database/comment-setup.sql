@@ -1,8 +1,3 @@
--- AWANG OFFICIAL PORTFOLIO: COMMENT SYSTEM SETUP
--- Run this once in Supabase Dashboard > SQL Editor.
--- This script only creates/configures resources named for the portfolio.
--- It does not alter other websites' tables or storage buckets.
-
 BEGIN;
 
 CREATE TABLE IF NOT EXISTS public.portfolio_comments (
@@ -14,7 +9,6 @@ CREATE TABLE IF NOT EXISTS public.portfolio_comments (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
--- Add missing portfolio columns if this table already existed in a partial setup.
 ALTER TABLE public.portfolio_comments
   ADD COLUMN IF NOT EXISTS content text,
   ADD COLUMN IF NOT EXISTS user_name text,
@@ -96,7 +90,6 @@ BEGIN
 END
 $$;
 
--- Dedicated public bucket for portfolio comment avatars (up to 5 MB).
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'portfolio-profile-images',
@@ -139,7 +132,6 @@ BEGIN
 END
 $$;
 
--- Enable Realtime for the portfolio comments table when it is not already enabled.
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime')
@@ -155,7 +147,3 @@ END
 $$;
 
 COMMIT;
-
--- After running, test comments on the portfolio site.
--- If a previous partial setup created an older, incomplete portfolio_comments table,
--- check its columns in Table Editor; the standard columns above are required by the app.
