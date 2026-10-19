@@ -165,7 +165,7 @@ const Modal = ({ title, onClose, children }) => (
     >
       <div className="absolute -inset-0.5 bg-gradient-to-r from-[#6366f1] to-[#a855f7] rounded-2xl blur opacity-20 pointer-events-none" />
       <div className="relative bg-[#0a0a1a] border border-white/12 rounded-2xl flex flex-col overflow-hidden">
-        {/* Fixed header */}
+
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/8 shrink-0">
           <h2 className="text-base font-semibold text-white">{title}</h2>
           <button
@@ -176,7 +176,7 @@ const Modal = ({ title, onClose, children }) => (
             <X className="w-5 h-5" />
           </button>
         </div>
-        {/* Scrollable content */}
+
         <div className="overflow-y-auto flex-1">{children}</div>
       </div>
     </div>
@@ -337,86 +337,105 @@ export default function Projects() {
   const [showCreate, setShowCreate] = useState(false);
   const [editProject, setEditProject] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [loadError, setLoadError] = useState("");
 
   const fetchProjects = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("projects")
-      .select("*")
-      .order("created_at", { ascending: false });
-    setProjects(data || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from("portfolio_projects")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setProjects(data || []);
+      setLoadError("");
+    } catch (error) {
+      setLoadError(error?.message || "Unable to load projects.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchProjects();
   }, []);
 
-  const uploadImage = async (f) => {
-    const fileName = `${Date.now()}-${f.name}`;
-    await supabase.storage.from("project-images").upload(fileName, f);
-    const { data } = supabase.storage
-      .from("project-images")
-      .getPublicUrl(fileName);
+  const uploadImage = async (file) => {
+    const extension = file.name.includes(".") ? file.name.split(".").pop().toLowerCase() : "img";
+    const safeExtension = extension.replace(/[^a-z0-9]/g, "") || "img";
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${safeExtension}`;
+    const { error } = await supabase.storage
+      .from("portfolio-project-images")
+      .upload(fileName, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: file.type || undefined,
+      });
+    if (error) throw new Error(`Image upload failed: ${error.message}`);
+    const { data } = supabase.storage.from("portfolio-project-images").getPublicUrl(fileName);
+    if (!data?.publicUrl) throw new Error("A public image URL could not be generated.");
     return data.publicUrl;
   };
 
+  const toProjectPayload = (form, imgUrl) => ({
+    Title: form.Title.trim(),
+    Description: form.Description.trim(),
+    Img: imgUrl || "",
+    TechStack: form.TechStack.split(",").map((item) => item.trim()).filter(Boolean),
+    Features: form.Features.split(",").map((item) => item.trim()).filter(Boolean),
+    Link: form.Link.trim(),
+    Github: form.Github.trim(),
+  });
+
   const handleCreate = async (form, file) => {
     setUploading(true);
-    let imgUrl = "";
-    if (file) imgUrl = await uploadImage(file);
-    await supabase.from("projects").insert({
-      Title: form.Title,
-      Description: form.Description,
-      Img: imgUrl,
-      TechStack: form.TechStack.split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      Features: form.Features.split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      Link: form.Link,
-      Github: form.Github,
-    });
-    setShowCreate(false);
-    setUploading(false);
-    fetchProjects();
+    try {
+      const imgUrl = file ? await uploadImage(file) : "";
+      const { error } = await supabase.from("portfolio_projects").insert(toProjectPayload(form, imgUrl));
+      if (error) throw error;
+      setShowCreate(false);
+      await fetchProjects();
+      window.alert("Project berhasil disimpan.");
+    } catch (error) {
+      window.alert(`Project gagal disimpan: ${error?.message || "Kesalahan tidak diketahui."}`);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleEdit = async (form, file) => {
     setUploading(true);
-    let imgUrl = editProject.Img || "";
-    if (file) imgUrl = await uploadImage(file);
-    await supabase
-      .from("projects")
-      .update({
-        Title: form.Title,
-        Description: form.Description,
-        Img: imgUrl,
-        TechStack: form.TechStack.split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        Features: form.Features.split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        Link: form.Link,
-        Github: form.Github,
-      })
-      .eq("id", editProject.id);
-    setEditProject(null);
-    setUploading(false);
-    fetchProjects();
+    try {
+      const imgUrl = file ? await uploadImage(file) : editProject.Img || "";
+      const { error } = await supabase
+        .from("portfolio_projects")
+        .update(toProjectPayload(form, imgUrl))
+        .eq("id", editProject.id);
+      if (error) throw error;
+      setEditProject(null);
+      await fetchProjects();
+      window.alert("Project berhasil diperbarui.");
+    } catch (error) {
+      window.alert(`Project gagal diperbarui: ${error?.message || "Kesalahan tidak diketahui."}`);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const deleteProject = async (id) => {
-    if (!confirm("Delete this project?")) return;
-    await supabase.from("projects").delete().eq("id", id);
-    fetchProjects();
+    if (!window.confirm("Delete this project?")) return;
+    try {
+      const { error } = await supabase.from("portfolio_projects").delete().eq("id", id);
+      if (error) throw error;
+      await fetchProjects();
+    } catch (error) {
+      window.alert(`Project gagal dihapus: ${error?.message || "Kesalahan tidak diketahui."}`);
+    }
   };
 
   return (
     <div className="space-y-6z ">
-      {/* Header */}
+
       <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -447,7 +466,13 @@ export default function Projects() {
         </button>
       </div>
 
-      {/* Create Modal */}
+      {loadError && (
+        <div role="alert" className="rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200 break-words">
+          {`Projects could not be loaded: ${loadError}`}
+          <button type="button" onClick={fetchProjects} className="ml-3 underline underline-offset-4">Retry</button>
+        </div>
+      )}
+
       {showCreate && (
         <Modal title="Add New Project" onClose={() => setShowCreate(false)}>
           <ProjectForm
@@ -459,7 +484,7 @@ export default function Projects() {
         </Modal>
       )}
 
-      {/* Edit Modal */}
+
       {editProject && (
         <Modal title="Edit Project" onClose={() => setEditProject(null)}>
           <ProjectForm
@@ -472,7 +497,7 @@ export default function Projects() {
         </Modal>
       )}
 
-      {/* Projects Grid */}
+
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (

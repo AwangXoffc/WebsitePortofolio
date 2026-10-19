@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 
-import { supabase } from "../supabase"; 
+import { supabase } from "../supabase";
 
 import PropTypes from "prop-types";
 import SwipeableViews from "react-swipeable-views";
@@ -22,20 +22,20 @@ const ToggleButton = ({ onClick, isShowingMore }) => (
     onClick={onClick}
     className="
       px-3 py-1.5
-      text-slate-300 
-      hover:text-white 
-      text-sm 
-      font-medium 
-      transition-all 
-      duration-300 
+      text-slate-300
+      hover:text-white
+      text-sm
+      font-medium
+      transition-all
+      duration-300
       ease-in-out
-      flex 
-      items-center 
+      flex
+      items-center
       gap-2
-      bg-white/5 
+      bg-white/5
       hover:bg-white/10
       rounded-md
-      border 
+      border
       border-white/10
       hover:border-white/20
       backdrop-blur-sm
@@ -57,8 +57,8 @@ const ToggleButton = ({ onClick, isShowingMore }) => (
         strokeLinecap="round"
         strokeLinejoin="round"
         className={`
-          transition-transform 
-          duration-300 
+          transition-transform
+          duration-300
           ${isShowingMore ? "group-hover:-translate-y-0.5" : "group-hover:translate-y-0.5"}
         `}
       >
@@ -100,8 +100,6 @@ function a11yProps(index) {
     "aria-controls": `full-width-tabpanel-${index}`,
   };
 }
-
-// techStacks tetap sama
 const techStacks = [
   { icon: "html.svg", language: "HTML" },
   { icon: "css.svg", language: "CSS" },
@@ -121,9 +119,16 @@ export default function FullWidthTabs() {
   const theme = useTheme();
   const [value, setValue] = useState(0);
   const [projects, setProjects] = useState([]);
+  const [projectError, setProjectError] = useState("");
   const [showAllProjects, setShowAllProjects] = useState(false);
-  const isMobile = window.innerWidth < 768;
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
   const initialItems = isMobile ? 4 : 6;
+
+  useEffect(() => {
+    const updateScreenSize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", updateScreenSize, { passive: true });
+    return () => window.removeEventListener("resize", updateScreenSize);
+  }, []);
 
   useEffect(() => {
     AOS.init({
@@ -135,7 +140,7 @@ export default function FullWidthTabs() {
   const fetchData = useCallback(async () => {
     try {
       const { data: projectData, error } = await supabase
-        .from("projects")
+        .from("portfolio_projects")
         .select("*")
         .order("id", { ascending: false });
 
@@ -143,26 +148,50 @@ export default function FullWidthTabs() {
 
       const safeProjects = projectData || [];
       setProjects(safeProjects);
+      setProjectError("");
       localStorage.setItem("projects", JSON.stringify(safeProjects));
     } catch (error) {
+      setProjectError(error?.message || "Projects could not be loaded.");
       console.error("Error fetching projects from Supabase:", error.message);
     }
   }, []);
 
-
-
   useEffect(() => {
-    // Tampilkan cache proyek terlebih dahulu agar halaman terasa responsif.
     const cachedProjects = localStorage.getItem("projects");
     if (cachedProjects) {
       try {
         setProjects(JSON.parse(cachedProjects));
-      } catch (error) {
-        console.warn("Cached project data could not be parsed:", error);
+      } catch {
+        localStorage.removeItem("projects");
       }
     }
 
     fetchData();
+
+    const channel = supabase
+      .channel("awang-public-projects-sync")
+      .on("postgres_changes", { event: "*", schema: "public", table: "portfolio_projects" }, () => {
+        fetchData();
+      })
+      .subscribe();
+
+    const refreshTimer = window.setInterval(() => {
+      if (!document.hidden) fetchData();
+    }, 15000);
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") fetchData();
+    };
+
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    window.addEventListener("focus", refreshWhenVisible);
+
+    return () => {
+      window.clearInterval(refreshTimer);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.removeEventListener("focus", refreshWhenVisible);
+      supabase.removeChannel(channel);
+    };
   }, [fetchData]);
 
   const handleChange = (event, newValue) => {
@@ -174,11 +203,9 @@ export default function FullWidthTabs() {
   }, []);
 
   const displayedProjects = showAllProjects ? projects : projects.slice(0, initialItems);
-
-  // Sisa dari komponen (return statement) tidak ada perubahan
   return (
-    <div className="md:px-[10%] px-[5%] w-full sm:mt-0 mt-[3rem] bg-[#030014] overflow-hidden" id="Portofolio">
-      {/* Header section - unchanged */}
+    <div className="md:px-[10%] px-[5%] w-full sm:mt-0 mt-[3rem] bg-[#030014] overflow-hidden portfolio-section" id="Portofolio">
+
       <div className="text-center pb-10" data-aos="fade-up" data-aos-duration="1000">
         <h2 className="inline-block text-3xl md:text-5xl font-bold text-center mx-auto text-transparent bg-clip-text bg-gradient-to-r from-[#6366f1] to-[#a855f7]">
           <span style={{
@@ -197,7 +224,7 @@ export default function FullWidthTabs() {
       </div>
 
       <Box sx={{ width: "100%" }}>
-        {/* AppBar and Tabs section - unchanged */}
+
         <AppBar
           position="static"
           elevation={0}
@@ -219,9 +246,9 @@ export default function FullWidthTabs() {
               zIndex: 0,
             },
           }}
-          className="md:px-4"
+          className="md:px-4 portfolio-tabs"
         >
-          {/* Tabs remain unchanged */}
+
           <Tabs
             value={value}
             onChange={handleChange}
@@ -284,8 +311,13 @@ export default function FullWidthTabs() {
           onChangeIndex={setValue}
         >
           <TabPanel value={value} index={0} dir={theme.direction}>
+            {projectError && projects.length === 0 && (
+              <div role="status" className="mx-auto mb-4 max-w-2xl rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm text-slate-400">
+                Projects are temporarily unavailable. Please try again shortly.
+              </div>
+            )}
             <div className="container mx-auto flex justify-center items-center overflow-hidden">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 portfolio-project-grid">
                 {displayedProjects.map((project, index) => (
                   <div
                     key={project.id || index}
@@ -315,7 +347,7 @@ export default function FullWidthTabs() {
 
           <TabPanel value={value} index={1} dir={theme.direction}>
             <div className="container mx-auto flex justify-center items-center overflow-hidden pb-[5%]">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 lg:gap-8 gap-5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-3 sm:gap-5 lg:gap-6 portfolio-tech-grid">
                 {techStacks.map((stack, index) => (
                   <div
                     key={index}
